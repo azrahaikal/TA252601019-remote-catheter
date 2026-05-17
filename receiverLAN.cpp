@@ -2,50 +2,54 @@
 #include <WiFiUdp.h>
 
 // --- KONFIGURASI IP (PENERIMA) ---
-IPAddress local_ip(192, 168, 1, 20);    // IP ESP32 ini (Beda dengan Pengirim)
+IPAddress local_ip(192, 168, 1, 20);    // IP ESP32 ini
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-// Port UDP (Harus sama dengan pengirim)
 unsigned int localPort = 8888;
-
 WiFiUDP udp;
-char packetBuffer[255]; // Buffer untuk menyimpan data masuk
+char packetBuffer[255]; 
 
 void setup() {
   Serial.begin(115200);
   
-  // 1. Mulai Ethernet
   ETH.begin(ETH_PHY_LAN8720, 1, 23, 18, -1, ETH_CLOCK_GPIO0_IN);
-  
-  // 2. Set Static IP
   ETH.config(local_ip, gateway, subnet);
-  
-  // 3. Mulai UDP
   udp.begin(localPort);
   
-  Serial.println("System Receiver Siap. Menunggu Data...");
+  Serial.println("System Receiver Siap. Menunggu Data Sensor...");
 }
 
 void loop() {
   if (ETH.linkUp()) {
-    // Cek apakah ada paket data masuk
     int packetSize = udp.parsePacket();
     
     if (packetSize) {
-      // Baca data yang masuk
       int len = udp.read(packetBuffer, 255);
       if (len > 0) {
         packetBuffer[len] = 0; // Null terminate string
       }
       
-      Serial.print("Diterima dari IP: ");
-      Serial.print(udp.remoteIP());
-      Serial.print(" | Pesan: ");
-      Serial.println(packetBuffer);
+      // Mengubah array karakter menjadi String Arduino
+      String dataMasuk = String(packetBuffer);
+      
+      // Mencari posisi tanda koma
+      int commaIndex = dataMasuk.indexOf(',');
+      
+      if (commaIndex > 0) {
+        // Memecah string dan mengubahnya menjadi angka float (desimal)
+        float dataSensor1 = dataMasuk.substring(0, commaIndex).toFloat();
+        float dataSensor2 = dataMasuk.substring(commaIndex + 1).toFloat();
+        
+        // Print hasil ekstraksi (Sekarang data berupa angka, siap digunakan)
+        Serial.print("Data Diekstrak -> S1: ");
+        Serial.print(dataSensor1, 1);
+        Serial.print("° \t|\t S2: ");
+        Serial.print(dataSensor2, 1);
+        Serial.println("°");
+      }
     }
   } else {
-    // Hanya print sesekali agar serial monitor tidak penuh
     static unsigned long lastCheck = 0;
     if (millis() - lastCheck > 2000) {
         Serial.println("Menunggu koneksi LAN...");

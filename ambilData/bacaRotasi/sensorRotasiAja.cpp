@@ -56,7 +56,7 @@ void loop() {
 
   // print
   if (millis() - lastPrintTime >= printInterval) {
-    float continuousDegree = totalPosition * (180.0 / 4096.0);
+    float continuousDegree = totalPosition * (360.0 / 4096.0);
     
     Serial.print("Sudut Kontinu: ");
     Serial.print(continuousDegree, 1);

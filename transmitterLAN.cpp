@@ -116,12 +116,28 @@ void loop() {
     Serial.println("°");
   } else {
     Serial.println("Kabel LAN belum terhubung...");
+
+    Serial.println("Cek Koneksi Sensor...");
+    Serial.print("Sensor 1 (Pin 32/33): ");
+    Serial.println(as5600_1.isConnected() ? "Terhubung!" : "Gagal terhubung.");
+    Serial.print("Sensor 2 (Pin 13/14): ");
+    Serial.println(as5600_2.isConnected() ? "Terhubung!" : "Gagal terhubung.");
+    
+    // ==========================================
+    // PROSES ZEROING (KALIBRASI AWAL KE 0)
+    // ==========================================
+    // Membaca posisi fisik sensor saat ESP32 pertama kali menyala
+    // Posisi ini akan dijadikan titik acuan "0"
+    rawSebelumnya1 = as5600_1.readAngle();
+    rawSebelumnya2 = as5600_2.readAngle();
+    totalRaw1 = 0; 
+    totalRaw2 = 0;
+    Serial.println("Kalibrasi Titik 0 Berhasil!");
+
     ETH.begin(ETH_PHY_LAN8720, 1, 23, 18, -1, ETH_CLOCK_GPIO0_IN);
     ETH.config(local_ip, gateway, subnet);
     udp.begin(localPort);
   }
   
-  // Jeda sangat tipis untuk kelancaran pembacaan I2C (minimal 2-5ms)
-  // Jangan set terlalu lama agar delta tidak terlewat jika diputar sangat cepat
   delay(100); 
 }

@@ -4,18 +4,14 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
-// =====================================================
-// KONFIGURASI MOTOR 1: NEMA 23 (ROTASI)
-// =====================================================
+// nema 23
 #define STEP_PIN_23 12
 #define DIR_PIN_23 14
 const int JEDA_23 = 1200;
 const long PPR_23 = 400;
 const float RASIO_23 = 5.0;
 
-// =====================================================
-// KONFIGURASI MOTOR 2: NEMA 17 + TMC2209 (TRANSLASI)
-// =====================================================
+// nema 17 tmc2209
 #define STEP_PIN_17 32
 #define DIR_PIN_17 33
 #define EN_PIN_17 16
@@ -25,9 +21,7 @@ const int MICROSTEP_17 = 8;
 const long PPR_17 = FULL_STEP_17 * MICROSTEP_17; // 1600
 const float RASIO_17 = 1.0;
 
-// =====================================================
-// VARIABEL GLOBAL & MUTEX
-// =====================================================
+// global variables
 volatile float targetRotasi = 0.0;
 volatile float targetTranslasi = 0.0;
 
@@ -38,9 +32,7 @@ float sisaStepTranslasi = 0.0;
 const float TOLERANSI_NOISE = 0.5;
 SemaphoreHandle_t dataMutex;
 
-// =====================================================
-// KONFIGURASI LAN
-// =====================================================
+// lan
 IPAddress local_ip(192, 168, 1, 20);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
@@ -48,7 +40,7 @@ unsigned int localPort = 8888;
 WiFiUDP udp;
 char packetBuffer[255];
 
-// --- TASK 1: MENERIMA DATA LAN (CORE 0) ---
+// core 0: menerima data dari LAN
 void taskLAN(void *pvParameters) {
   for (;;) {
     if (ETH.linkUp()) {
@@ -66,7 +58,7 @@ void taskLAN(void *pvParameters) {
           float dataS2 = dataMasuk.substring(commaIndex + 1).toFloat();
           
           if (xSemaphoreTake(dataMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-            // Hanya print jika target berubah untuk menghindari banjir teks di monitor
+            // print
             if (targetRotasi != dataS1 || targetTranslasi != dataS2) {
                Serial.print("[LAN] Data Masuk -> Rotasi: "); Serial.print(dataS1);
                Serial.print(" | Translasi: "); Serial.println(dataS2);
@@ -82,7 +74,7 @@ void taskLAN(void *pvParameters) {
   }
 }
 
-// --- TASK 2: KENDALI MOTOR ROTASI / NEMA 23 (CORE 1) ---
+// --- core 1: Nema 23
 void taskRotasi(void *pvParameters) {
   for (;;) {
     float localTarget = posisiRotasi;
@@ -105,7 +97,6 @@ void taskRotasi(void *pvParameters) {
         digitalWrite(STEP_PIN_23, HIGH);
         delayMicroseconds(JEDA_23);
         
-        // Jeda sangat tipis agar tidak bentrok dengan Nema 17 di Core 1
         if (i % 100 == 0) vTaskDelay(pdMS_TO_TICKS(1)); 
       }
       posisiRotasi = localTarget;
@@ -115,7 +106,7 @@ void taskRotasi(void *pvParameters) {
   }
 }
 
-// --- TASK 3: KENDALI MOTOR TRANSLASI / NEMA 17 (CORE 1) ---
+// --- core 1: Nema 17
 void taskTranslasi(void *pvParameters) {
   for (;;) {
     float localTarget = posisiTranslasi;
@@ -160,16 +151,16 @@ void taskTranslasi(void *pvParameters) {
 
 void setup() {
   Serial.begin(115200);
-  delay(1000); // Waktu stabilisasi Serial Monitor
+  delay(1000);
   
-  // Setup Pin Motor
+  // pin motor
   pinMode(STEP_PIN_23, OUTPUT);
   pinMode(DIR_PIN_23, OUTPUT);
   pinMode(STEP_PIN_17, OUTPUT);
   pinMode(DIR_PIN_17, OUTPUT);
   pinMode(EN_PIN_17, OUTPUT);
   
-  // Inisialisasi State Awal Motor (Mengikuti kode teman Anda)
+  // inisialisasi state awal motor
   digitalWrite(STEP_PIN_23, HIGH);
   digitalWrite(DIR_PIN_23, HIGH);
   digitalWrite(EN_PIN_17, LOW); 
@@ -178,21 +169,20 @@ void setup() {
   
   dataMutex = xSemaphoreCreateMutex();
   
-  // Setup LAN
-  Serial.println("Memulai Ethernet LAN8720...");
+  // setup lan
+  Serial.println("Memulai Ethernet...");
   ETH.begin(ETH_PHY_LAN8720, 1, 23, 18, -1, ETH_CLOCK_GPIO0_IN);
   ETH.config(local_ip, gateway, subnet);
   udp.begin(localPort);
 
-  // Mendaftarkan Thread
+  // buat thread
   xTaskCreatePinnedToCore(taskLAN, "TaskLAN", 4096, NULL, 1, NULL, 0);       
   xTaskCreatePinnedToCore(taskRotasi, "TaskRotasi", 4096, NULL, 1, NULL, 1); 
   xTaskCreatePinnedToCore(taskTranslasi, "TaskTranslasi", 4096, NULL, 1, NULL, 1); 
   
-  Serial.println("=== SYSTEM RECEIVER LAN (DEBUG) SIAP ===");
-  Serial.println("Menunggu data masuk...");
+  Serial.println("receiver siap...");
 }
 
 void loop() {
-  // Kosong
+  // kosong
 }

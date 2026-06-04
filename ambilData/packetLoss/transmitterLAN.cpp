@@ -3,12 +3,13 @@
 
 // konfigurasi ip address
 IPAddress local_ip(192, 168, 1, 10);    // yg ini
-IPAddress receiver_ip(192, 168, 1, 20); // ini penerima
+IPAddress receiver_ip(255, 255, 255, 255); // ini penerima
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 unsigned int localPort = 8888;
 WiFiUDP udp;
+unsigned long packet_id = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -34,17 +35,19 @@ void loop() {
     // CH1 osiloskop --> TX_EN, tunggu saat rising edge
     // CH2 osiloskop --> CRS_DV, tunggu di falling edge
     // ukur waktu antara rising edge dan falling edge
-    String payload = "abcdefghijklmnopqrstu"; // minimal 18 byte | 6.6 us
+    String payload = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWX";; // minimal 18 byte | 6.65 us, 6.65 us
+    //packet_id++;
+    Serial.println(payload);
     // untuk tiap test case, ambil data 4 kali, lalu rata-ratakan. SAMA AJA, gk harus 4 kali
     // test case:
-    // abcdefg --> 7 byte | 6.62 us, 6.49 us
-    // abcdefghij --> 10 byte | 6.62 us, 
-    // abcdefghijklm --> 13 byte | 6.66 us
-    // abcdefghijklmnop --> 16 byte | 6.64 us
-    // abcdefghijklmnopqr --> 18 byte | 6.64 us
+    // abcdefg --> 7 byte | 6.65 us, 6.65 us
+    // abcdefghij --> 10 byte | 6.65 us us, 6.65 us
+    // abcdefghijklm --> 13 byte | 6.65 us, 6.65 us
+    // abcdefghijklmnop --> 16 byte |  us
+    // abcdefghijklmnopqr --> 18 byte | 6.65 us, 6.65 us
 
-    // abcdefghijklmnopqrstu --> 21 byte | 6.66 us, 6.49 us
-    // abcdefghijklmnopqrstuvwx --> 24 byte | 6.66 us, 6.5 us
+    // abcdefghijklmnopqrstu --> 21 byte |  us
+    // abcdefghijklmnopqrstuvwx --> 24 byte | 
     // abcdefghijklmnopqrstuvwxyzA --> 27 byte |
     // abcdefghijklmnopqrstuvwxyzABC --> 29 byte |
     // abcdefghijklmnopqrstuvwxyzABCDEF --> 32 byte |
@@ -53,17 +56,21 @@ void loop() {
     // abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO --> 41 byte |
     // abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR --> 44 byte |
     // abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU --> 47 byte |
-    // abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWX --> 50 byte | 6.66 us, 6.51
+    // abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWX --> 50 byte | 
+    // --> 100 byte | 13.2 us, 13.2 us
     
     // Kirim Paket UDP
     udp.beginPacket(receiver_ip, localPort);
     udp.print(payload);
     udp.endPacket();
+    if (packet_id >= 4294967295) {
+      packet_id = 0;
+    }
     
   } else {
     Serial.println("Kabel LAN belum terhubung...");
   }
   
   // delay ms
-  delayMicroseconds(1); 
+  delay(500); 
 }
